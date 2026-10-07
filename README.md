@@ -15,7 +15,7 @@ Public repository: [pelithne/devday-infra](https://github.com/pelithne/devday-in
 | API server | Public; optionally restricted to configured CIDR ranges |
 | Azure Container Registry | Basic tier, admin account disabled |
 | Registry integration | `AcrPull` assigned to the AKS kubelet identity at registry scope |
-| GitOps | Azure Flux v2 extension, stable release train, automatic minor-version upgrades |
+| GitOps | Azure Flux v2 extension and synchronization of `devday-demoapp` manifests |
 | Workload identity | OIDC issuer and Microsoft Entra Workload ID enabled |
 
 Node counts are fixed; autoscaling is disabled. Upgrades may temporarily add one surge node per pool. The Kubernetes version is not pinned, so Azure selects its supported default at initial deployment. AKS creates its own node resource group and virtual network.
@@ -24,7 +24,7 @@ AKS is deployed in North Europe because Sweden Central rejected cluster creation
 
 The node SKU uses `Standard_D4s_v6` because this subscription does not allow `Standard_D4s_v5` in North Europe. Both sizes provide 4 vCPUs and 16 GiB RAM.
 
-Flux is installed **without a Git repository configuration**. It will not synchronize applications until you configure a source, as shown below. Workload identity is available, but no per-application identities, federated credentials, or Azure resource permissions are created automatically.
+Flux synchronizes [pelithne/devday-demoapp](https://github.com/pelithne/devday-demoapp), branch `main`, path `./deploy`, every minute. The demo voting app runs a public Nginx frontend and a separate Flask API with SQLite on an Azure Disk PVC. App CI publishes images to ACR and commits their versions to Git; Flux deploys them without CI accessing AKS. Workload identity is available, but no pod-specific identities or permissions are created automatically.
 
 ## Deploy
 
@@ -103,7 +103,29 @@ Allow for Azure role-assignment propagation before testing image pulls. Applicat
 
 `System` mode does not prevent application pods from running on system nodes. To target the user pool, add `nodeSelector: { kubernetes.azure.com/agentpool: user }` to the pod spec.
 
-## Connect a GitOps repository later
+## Demo application GitOps
+
+[infra/demoapp-gitops.bicep](./infra/demoapp-gitops.bicep) is included in the main deployment after Flux is installed. It can also configure an already-deployed cluster without redeploying AKS:
+
+```bash
+az deployment group create \
+  --subscription Student11 \
+  --resource-group rg-azure-day \
+  --name demoapp-gitops \
+  --template-file infra/demoapp-gitops.bicep
+```
+
+The source reconciles `main` in [devday-demoapp](https://github.com/pelithne/devday-demoapp) with pruning and health checks enabled. The app namespace and data PVC are explicitly non-prunable to protect votes; explicit deletion still destroys data. See the application's README for its delivery pipeline, voting model, demo script, and teardown guidance.
+
+Find the app's public HTTP address and check reconciliation:
+
+```bash
+kubectl get service frontend -n devday-demoapp
+kubectl get gitrepositories,kustomizations -n flux-system
+kubectl get pods,pvc -n devday-demoapp
+```
+
+## Connect an additional GitOps repository
 
 Install the CLI extensions and check the Flux installation:
 

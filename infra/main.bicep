@@ -130,6 +130,16 @@ resource flux 'Microsoft.KubernetesConfiguration/extensions@2024-11-01' = {
   }
 }
 
+module demoappGitops './demoapp-gitops.bicep' = {
+  name: 'demoapp-gitops'
+  params: {
+    clusterName: aks.name
+  }
+  dependsOn: [
+    flux
+  ]
+}
+
 output clusterName string = aks.name
 output clusterResourceId string = aks.id
 output apiServerFqdn string = aks.properties.fqdn
@@ -138,3 +148,4 @@ output acrLoginServer string = acr.properties.loginServer
 output kubeletIdentityObjectId string = aks.properties.identityProfile.kubeletidentity.objectId
 output oidcIssuerUrl string = aks.properties.oidcIssuerProfile.issuerURL
 output fluxExtensionResourceId string = flux.id
+output demoappGitopsConfigurationId string = demoappGitops.outputs.configurationId

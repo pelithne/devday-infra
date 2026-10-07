@@ -76,7 +76,7 @@ class InfrastructureTests(unittest.TestCase):
             self.template["variables"]["acrPullRoleDefinitionId"],
         )
 
-    def test_flux_installed_without_repository_sync(self):
+    def test_flux_installed_with_demoapp_repository_sync(self):
         extensions = resources(self.template, "Microsoft.KubernetesConfiguration/extensions")
         self.assertEqual(len(extensions), 1)
         self.assertIn("Microsoft.ContainerService/managedClusters", extensions[0]["scope"])
@@ -84,7 +84,24 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(properties["extensionType"], "microsoft.flux")
         self.assertEqual(properties["scope"]["cluster"]["releaseNamespace"], "flux-system")
         self.assertTrue(properties["autoUpgradeMinorVersion"])
-        self.assertEqual(resources(self.template, "Microsoft.KubernetesConfiguration/fluxConfigurations"), [])
+        modules = resources(self.template, "Microsoft.Resources/deployments")
+        self.assertEqual(len(modules), 1)
+        module = modules[0]
+        source = module["properties"]["template"]
+        self.assertEqual(
+            source["parameters"]["repositoryUrl"]["defaultValue"],
+            "https://github.com/pelithne/devday-demoapp",
+        )
+        configurations = resources(source, "Microsoft.KubernetesConfiguration/fluxConfigurations")
+        self.assertEqual(len(configurations), 1)
+        configuration = configurations[0]
+        self.assertIn("Microsoft.ContainerService/managedClusters", configuration["scope"])
+        properties = configuration["properties"]
+        self.assertEqual(properties["gitRepository"]["repositoryRef"]["branch"], "main")
+        self.assertEqual(properties["kustomizations"]["app"]["path"], "./deploy")
+        self.assertTrue(properties["kustomizations"]["app"]["wait"])
+        self.assertTrue(properties["kustomizations"]["app"]["prune"])
+        self.assertTrue(any("flux" in dependency for dependency in module["dependsOn"]))
 
     def test_deployment_identity_trusts_production_environment(self):
         template = load_template("github-oidc.json")
