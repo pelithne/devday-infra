@@ -3,8 +3,8 @@ targetScope = 'resourceGroup'
 @description('Location of the GitHub Actions deployment identity.')
 param location string = resourceGroup().location
 
-@description('GitHub owner/repository trusted to deploy this resource group.')
-param githubRepository string = 'pelithne/hsb-azure-day'
+@description('Exact GitHub OIDC subject prefix, including immutable owner and repository IDs for this repository.')
+param githubSubjectPrefix string = 'repo:pelithne@45140408/hsb-azure-day@1408351006'
 
 @description('Protected GitHub environment used by the deployment job.')
 param githubEnvironment string = 'production'
@@ -31,7 +31,7 @@ resource githubFederation 'Microsoft.ManagedIdentity/userAssignedIdentities/fede
   name: 'github-production'
   properties: {
     issuer: 'https://token.actions.githubusercontent.com'
-    subject: 'repo:${githubRepository}:environment:${githubEnvironment}'
+    subject: '${githubSubjectPrefix}:environment:${githubEnvironment}'
     audiences: [
       'api://AzureADTokenExchange'
     ]

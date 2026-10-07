@@ -80,7 +80,10 @@ class InfrastructureTests(unittest.TestCase):
 
     def test_deployment_identity_trusts_production_environment(self):
         template = load_template("github-oidc.json")
-        self.assertEqual(template["parameters"]["githubRepository"]["defaultValue"], "pelithne/hsb-azure-day")
+        self.assertEqual(
+            template["parameters"]["githubSubjectPrefix"]["defaultValue"],
+            "repo:pelithne@45140408/hsb-azure-day@1408351006",
+        )
         self.assertEqual(template["parameters"]["githubEnvironment"]["defaultValue"], "production")
         credentials = resources(
             template,
@@ -91,7 +94,7 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(properties["issuer"], "https://token.actions.githubusercontent.com")
         self.assertEqual(
             properties["subject"],
-            "[format('repo:{0}:environment:{1}', parameters('githubRepository'), parameters('githubEnvironment'))]",
+            "[format('{0}:environment:{1}', parameters('githubSubjectPrefix'), parameters('githubEnvironment'))]",
         )
         self.assertEqual(properties["audiences"], ["api://AzureADTokenExchange"])
         assignments = resources(template, "Microsoft.Authorization/roleAssignments")

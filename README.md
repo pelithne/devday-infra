@@ -213,10 +213,19 @@ az deployment group create \
 
 [infra/github-oidc.bicep](./infra/github-oidc.bicep) creates a user-assigned identity with:
 
-- A federated credential issued by `https://token.actions.githubusercontent.com`, with audience `api://AzureADTokenExchange` and subject `repo:pelithne/hsb-azure-day:environment:production`.
+- A federated credential issued by `https://token.actions.githubusercontent.com`, with audience `api://AzureADTokenExchange` and subject `repo:pelithne@45140408/hsb-azure-day@1408351006:environment:production`.
 - **Contributor** and **Role Based Access Control Administrator** at the resource-group scope, not subscription scope. Role administration is required because the AKS template assigns ACR pull access. This is a privileged identity: protect environment approval and restrict deployment branches.
 
 No Azure client secret is needed. This identity is for GitHub deployments and is separate from identities used by application pods.
+
+This repository uses GitHub's immutable OIDC subjects, which include the owner and repository IDs. Azure must trust the **exact** subject emitted by GitHub, not the legacy name-only subject. Inspect the repository configuration with:
+
+```bash
+gh api repos/pelithne/hsb-azure-day/actions/oidc/customization/sub \
+  --jq '{use_immutable_subject, sub_claim_prefix}'
+```
+
+The bootstrap's `githubSubjectPrefix` parameter matches `sub_claim_prefix`; the template appends `:environment:production`. When reusing the template for another repository, use its actual prefix. A login failure with `AADSTS700213` indicates that the emitted subject, issuer, or audience does not match an Azure federated credential; compare the login step's claim details with the credential and reapply the corrected bootstrap.
 
 In GitHub **Settings > Environments > production**, configure:
 
