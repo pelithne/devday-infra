@@ -90,7 +90,7 @@ class InfrastructureTests(unittest.TestCase):
         template = load_template("github-oidc.json")
         self.assertEqual(
             template["parameters"]["githubSubjectPrefix"]["defaultValue"],
-            "repo:pelithne@45140408/azure-day@1408351006",
+            "repo:pelithne@45140408/devday-infra@1408351006",
         )
         self.assertEqual(template["parameters"]["githubEnvironment"]["defaultValue"], "production")
         self.assertEqual(template["parameters"]["identityName"]["defaultValue"], "id-azure-day-github-actions")
