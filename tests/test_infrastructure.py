@@ -25,10 +25,17 @@ class InfrastructureTests(unittest.TestCase):
         cls.cluster = resources(cls.template, "Microsoft.ContainerService/managedClusters")[0]
 
     def test_region_and_vm_size(self):
-        for name, value in (("location", "swedencentral"), ("nodeVmSize", "Standard_D4s_v5")):
+        for name, value in (
+            ("location", "northeurope"),
+            ("acrLocation", "swedencentral"),
+            ("nodeVmSize", "Standard_D4s_v6"),
+        ):
             with self.subTest(parameter=name):
                 self.assertEqual(self.template["parameters"][name]["defaultValue"], value)
                 self.assertEqual(self.parameters[name]["value"], value)
+        self.assertEqual(self.cluster["location"], "[parameters('location')]")
+        registry = resources(self.template, "Microsoft.ContainerRegistry/registries")[0]
+        self.assertEqual(registry["location"], "[parameters('acrLocation')]")
 
     def test_exact_node_pool_configuration(self):
         pools = self.cluster["properties"]["agentPoolProfiles"]

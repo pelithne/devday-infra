@@ -1,7 +1,10 @@
 targetScope = 'resourceGroup'
 
-@description('Azure region for the cluster and container registry.')
-param location string = 'swedencentral'
+@description('Azure region for the AKS cluster.')
+param location string = 'northeurope'
+
+@description('Azure region for the container registry. Keep this unchanged for an existing registry.')
+param acrLocation string = 'swedencentral'
 
 @description('Name of the AKS cluster. Also used as the public API DNS prefix.')
 @minLength(1)
@@ -13,8 +16,8 @@ param clusterName string = 'aks-hsb-azure-day'
 @maxLength(50)
 param acrName string = 'acr${uniqueString(resourceGroup().id)}'
 
-@description('VM size for both node pools. Standard_D4s_v5 has 4 vCPUs and 16 GiB RAM.')
-param nodeVmSize string = 'Standard_D4s_v5'
+@description('VM size for both node pools. Standard_D4s_v6 has 4 vCPUs and 16 GiB RAM.')
+param nodeVmSize string = 'Standard_D4s_v6'
 
 @description('Optional CIDR ranges allowed to reach the public API server. Empty allows access from any IP, with authentication still required.')
 param apiServerAuthorizedIpRanges string[] = []
@@ -26,7 +29,7 @@ var acrPullRoleDefinitionId = subscriptionResourceId(
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: acrName
-  location: location
+  location: acrLocation
   sku: {
     name: 'Basic'
   }

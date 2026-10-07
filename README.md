@@ -6,10 +6,11 @@ Public repository: [pelithne/hsb-azure-day](https://github.com/pelithne/hsb-azur
 
 | Component | Configuration |
 | --- | --- |
-| Region | Sweden Central (`swedencentral`) |
+| AKS region | North Europe (`northeurope`) |
+| ACR region | Sweden Central (`swedencentral`) |
 | AKS | Free control-plane tier, managed identity, Kubernetes RBAC |
-| System node pool | 2 Linux nodes, `Standard_D4s_v5` (4 vCPUs, 16 GiB RAM each) |
-| User node pool | 1 Linux node, `Standard_D4s_v5` |
+| System node pool | 2 Linux nodes, `Standard_D4s_v6` (4 vCPUs, 16 GiB RAM each) |
+| User node pool | 1 Linux node, `Standard_D4s_v6` |
 | Networking | Azure CNI Overlay with the Cilium dataplane |
 | API server | Public; optionally restricted to configured CIDR ranges |
 | Azure Container Registry | Basic tier, admin account disabled |
@@ -19,6 +20,10 @@ Public repository: [pelithne/hsb-azure-day](https://github.com/pelithne/hsb-azur
 
 Node counts are fixed; autoscaling is disabled. Upgrades may temporarily add one surge node per pool. The Kubernetes version is not pinned, so Azure selects its supported default at initial deployment. AKS creates its own node resource group and virtual network.
 
+AKS is deployed in North Europe because Sweden Central rejected cluster creation with `AKSCapacityHeavyUsage`. The existing ACR remains in Sweden Central with the same name and pull permissions. Cross-region image pulls may add latency and inter-region data-transfer charges. The resource group and GitHub deployment identity also remain in Sweden Central; their locations do not constrain the cluster's region.
+
+The node SKU uses `Standard_D4s_v6` because this subscription does not allow `Standard_D4s_v5` in North Europe. Both sizes provide 4 vCPUs and 16 GiB RAM.
+
 Flux is installed **without a Git repository configuration**. It will not synchronize applications until you configure a source, as shown below. Workload identity is available, but no per-application identities, federated credentials, or Azure resource permissions are created automatically.
 
 ## Deploy
@@ -26,7 +31,7 @@ Flux is installed **without a Git repository configuration**. It will not synchr
 Requirements:
 
 - Azure CLI with Bicep support (`az bicep version`).
-- An Azure subscription with sufficient quota and availability for three `Standard_D4s_v5` nodes in Sweden Central (12 steady-state vCPUs, plus upgrade surge capacity).
+- An Azure subscription with sufficient quota and availability for three `Standard_D4s_v6` nodes in North Europe (12 steady-state vCPUs, plus upgrade surge capacity).
 - Permission to create resources **and role assignments**, for example Contributor plus Role Based Access Control Administrator scoped to the resource group, or Owner.
 
 Sign in, select the subscription, and register the resource providers if necessary:
@@ -58,6 +63,8 @@ az deployment group create \
 
 The parameter file references the template, so a separate `--template-file` is not required. The registry name defaults to `acr` plus a deterministic suffix based on the resource group ID. Override `acrName` if needed.
 
+`location` controls the AKS region, while `acrLocation` independently controls the registry region. Keep `acrLocation` and `acrName` unchanged when reusing an existing registry; changing its region in place is not supported.
+
 The public API accepts connections from any IP by default; Kubernetes authentication and authorization still apply. To restrict access, add a parameter to the parameter file before deployment:
 
 ```bicep
@@ -78,7 +85,7 @@ az aks get-credentials \
 kubectl get nodes -L kubernetes.azure.com/mode,kubernetes.azure.com/agentpool
 
 az aks show --resource-group rg-hsb-azure-day --name aks-hsb-azure-day \
-  --query '{dataplane:networkProfile.networkDataplane,networkMode:networkProfile.networkPluginMode,privateAPI:apiServerAccessProfile.enablePrivateCluster,oidc:oidcIssuerProfile.enabled,workloadIdentity:securityProfile.workloadIdentity.enabled,pools:agentPoolProfiles[].{name:name,mode:mode,count:count,vmSize:vmSize}}'
+  --query '{location:location,dataplane:networkProfile.networkDataplane,networkMode:networkProfile.networkPluginMode,privateAPI:apiServerAccessProfile.enablePrivateCluster,oidc:oidcIssuerProfile.enabled,workloadIdentity:securityProfile.workloadIdentity.enabled,pools:agentPoolProfiles[].{name:name,mode:mode,count:count,vmSize:vmSize}}'
 
 ACR_NAME=$(az deployment group show \
   --resource-group rg-hsb-azure-day --name aks-infrastructure \
@@ -193,7 +200,7 @@ Deployments are serialized and running deployments are not cancelled by subseque
 
 ### One-time Azure and GitHub configuration
 
-The deployment target is subscription **Student11**, resource group `rg-hsb-azure-day` in Sweden Central. The pipeline does not create the resource group or register providers; bootstrap them once using an administrative Azure account:
+The deployment target is subscription **Student11**, resource group `rg-hsb-azure-day`. The resource group and deployment identity stay in Sweden Central, while the AKS cluster is created in North Europe. The pipeline does not create the resource group or register providers; bootstrap them once using an administrative Azure account:
 
 ```bash
 az account set --subscription Student11
