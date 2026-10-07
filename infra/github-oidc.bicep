@@ -4,13 +4,13 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 @description('Exact GitHub OIDC subject prefix, including immutable owner and repository IDs for this repository.')
-param githubSubjectPrefix string = 'repo:pelithne@45140408/hsb-azure-day@1408351006'
+param githubSubjectPrefix string = 'repo:pelithne@45140408/azure-day@1408351006'
 
 @description('Protected GitHub environment used by the deployment job.')
 param githubEnvironment string = 'production'
 
 @description('Name of the user-assigned deployment identity.')
-param identityName string = 'id-hsb-github-actions'
+param identityName string = 'id-azure-day-github-actions'
 
 var contributorRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',

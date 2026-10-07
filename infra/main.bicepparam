@@ -2,7 +2,7 @@ using './main.bicep'
 
 param location = 'northeurope'
 param acrLocation = 'swedencentral'
-param clusterName = 'aks-hsb-azure-day'
+param clusterName = 'aks-azure-day'
 param nodeVmSize = 'Standard_D4s_v6'
 
 // ACR uses a deterministic, globally unique name based on the resource group.

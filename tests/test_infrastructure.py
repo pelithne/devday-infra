@@ -24,11 +24,12 @@ class InfrastructureTests(unittest.TestCase):
         cls.parameters = load_template("main.parameters.json")["parameters"]
         cls.cluster = resources(cls.template, "Microsoft.ContainerService/managedClusters")[0]
 
-    def test_region_and_vm_size(self):
+    def test_region_vm_size_and_cluster_name(self):
         for name, value in (
             ("location", "northeurope"),
             ("acrLocation", "swedencentral"),
             ("nodeVmSize", "Standard_D4s_v6"),
+            ("clusterName", "aks-azure-day"),
         ):
             with self.subTest(parameter=name):
                 self.assertEqual(self.template["parameters"][name]["defaultValue"], value)
@@ -89,9 +90,10 @@ class InfrastructureTests(unittest.TestCase):
         template = load_template("github-oidc.json")
         self.assertEqual(
             template["parameters"]["githubSubjectPrefix"]["defaultValue"],
-            "repo:pelithne@45140408/hsb-azure-day@1408351006",
+            "repo:pelithne@45140408/azure-day@1408351006",
         )
         self.assertEqual(template["parameters"]["githubEnvironment"]["defaultValue"], "production")
+        self.assertEqual(template["parameters"]["identityName"]["defaultValue"], "id-azure-day-github-actions")
         credentials = resources(
             template,
             "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials",

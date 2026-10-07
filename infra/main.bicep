@@ -9,7 +9,7 @@ param acrLocation string = 'swedencentral'
 @description('Name of the AKS cluster. Also used as the public API DNS prefix.')
 @minLength(1)
 @maxLength(63)
-param clusterName string = 'aks-hsb-azure-day'
+param clusterName string = 'aks-azure-day'
 
 @description('Globally unique ACR name, containing only alphanumeric characters.')
 @minLength(5)
